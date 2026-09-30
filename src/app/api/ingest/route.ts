@@ -41,6 +41,9 @@ const ProductIn = z.object({
   typicalSourcePrice: z.number(),
   bestSources: z.array(z.string()).default([]),
   history: z.array(Metric).default([]),
+  refs: z
+    .object({ discogsReleaseId: z.number().int().optional(), tcgdexCardId: z.string().optional(), scryfallId: z.string().optional() })
+    .optional(),
 });
 
 const Listing = z.object({

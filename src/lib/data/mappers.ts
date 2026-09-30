@@ -1,4 +1,4 @@
-import type { CategoryId, DailyMetric, LocalListing, Product, SourceVenue } from "@/lib/domain/types";
+import type { CategoryId, DailyMetric, LocalListing, Product, ProductRefs, SourceVenue } from "@/lib/domain/types";
 
 /* Row shapes mirror supabase/migrations/0001_init.sql. Numerics arrive as numbers or strings. */
 type Num = number | string | null;
@@ -24,6 +24,7 @@ export interface ProductRow {
   avg_days_to_sell: Num;
   typical_source_price: Num;
   best_sources: string[];
+  external_refs?: ProductRefs | null;
   sell_through_rate?: Num;
   trend_score?: Num;
   opportunity_score?: number | null;
@@ -74,6 +75,7 @@ export function productFromRow(r: ProductRow, history: DailyMetric[]): Product {
     typicalSourcePrice: n(r.typical_source_price),
     bestSources: r.best_sources as SourceVenue[],
     history,
+    ...(r.external_refs && Object.keys(r.external_refs).length > 0 && { refs: r.external_refs }),
   };
 }
 
@@ -98,6 +100,7 @@ export function productToRow(p: Product, scores?: { sellThrough: number; trend: 
     avg_days_to_sell: p.avgDaysToSell,
     typical_source_price: p.typicalSourcePrice,
     best_sources: p.bestSources,
+    external_refs: p.refs ?? {},
     ...(scores && {
       sell_through_rate: scores.sellThrough,
       trend_score: scores.trend,

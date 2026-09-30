@@ -1,4 +1,4 @@
-import type { CategoryId, Mode, SourceVenue } from "@/lib/domain/types";
+import type { CategoryId, Mode, ProductRefs, SourceVenue } from "@/lib/domain/types";
 
 /**
  * Sample catalog used when no live data source (Supabase) is configured.
@@ -35,6 +35,7 @@ export interface CatalogSpec {
   ship: number;
   search7?: number;
   venues: SourceVenue[];
+  refs?: ProductRefs;
 }
 
 export const CATALOG: CatalogSpec[] = [
@@ -92,7 +93,11 @@ export const CATALOG: CatalogSpec[] = [
   { id: "tamagotchi-1997", name: "Tamagotchi (1997 original)", brand: "Bandai", category: "toys", segment: "90s toys", keywords: ["tamagotchi"], price: 64, source: 5, drift: 0.16, spike: 0.1, soldDay: 1.8, demand7: 0.3, active: 110, days: 7, ship: 5, search7: 0.35, venues: ["Garage sale", "Flea market"] },
   // Collectibles
   { id: "pyrex-pink-daisy", name: "Pyrex Pink Daisy Mixing Bowl Set", brand: "Pyrex", category: "collectibles", segment: "Vintage Pyrex", keywords: ["pyrex", "daisy"], price: 145, source: 12, drift: 0.04, soldDay: 1.2, active: 120, days: 14, ship: 28, venues: ["Estate sale", "Goodwill"] },
-  { id: "pokemon-base-booster-box-art", name: "Pokémon Base Set Unlimited Charizard (played)", brand: "Pokémon", category: "collectibles", segment: "Trading cards", keywords: ["charizard", "base set"], price: 340, source: 150, drift: 0.06, soldDay: 6, active: 400, days: 5, ship: 5, venues: ["Estate sale", "Flea market"] },
+  { id: "pokemon-base-booster-box-art", name: "Pokémon Base Set Unlimited Charizard (played)", brand: "Pokémon", category: "collectibles", segment: "Trading cards", keywords: ["charizard", "base set"], price: 340, source: 150, drift: 0.06, soldDay: 6, active: 400, days: 5, ship: 5, venues: ["Estate sale", "Flea market"], refs: { tcgdexCardId: "base1-4" } },
+  { id: "mtg-rhystic-study-j22", name: "Rhystic Study (Jumpstart 2022)", brand: "Magic: The Gathering", category: "collectibles", segment: "Trading cards", keywords: ["rhystic study"], price: 68, source: 2, drift: 0.05, soldDay: 4, active: 300, days: 4, ship: 1, venues: ["Estate sale", "Garage sale"], refs: { scryfallId: "9f37c5b6-a59c-45cd-9a99-e9357fe9ea1b" } },
+  { id: "nirvana-nevermind-1991-lp", name: "Nirvana – Nevermind (1991 US LP, original)", brand: "DGC", category: "collectibles", segment: "Vintage vinyl", keywords: ["nirvana", "nevermind"], price: 1150, source: 5, drift: 0.06, soldDay: 0.1, active: 11, sellers: 11, days: 18, ship: 6, venues: ["Estate sale", "Goodwill", "Flea market"], refs: { discogsReleaseId: 1813006 } },
+  { id: "daft-punk-homework-1997-lp", name: "Daft Punk – Homework (1997 LP)", brand: "Virgin", category: "collectibles", segment: "Vintage vinyl", keywords: ["daft punk", "homework"], price: 48, source: 3, drift: 0.04, soldDay: 1.5, active: 125, days: 9, ship: 6, venues: ["Goodwill", "Flea market"], refs: { discogsReleaseId: 2947655 } },
+  { id: "dr-dre-chronic-cassette-1992", name: "Dr. Dre – The Chronic (1992 cassette)", brand: "Death Row", category: "collectibles", segment: "Cassettes", keywords: ["chronic", "cassette"], price: 38, source: 1, drift: 0.12, spike: 0.05, soldDay: 0.4, demand7: 0.3, active: 6, sellers: 6, days: 10, ship: 5, venues: ["Goodwill", "Garage sale", "Flea market"], refs: { discogsReleaseId: 721450 } },
   { id: "hot-wheels-redline", name: "Hot Wheels Redline (1968-72, loose)", brand: "Mattel", category: "collectibles", segment: "Die-cast", keywords: ["hot wheels", "redline"], price: 48, source: 5, drift: 0.08, soldDay: 10, active: 1200, days: 10, ship: 5, venues: ["Estate sale", "Flea market", "Garage sale"] },
   // Vintage clothing
   { id: "harley-3d-emblem-tee", name: "Harley-Davidson 3D Emblem Tee (90s)", brand: "Harley-Davidson", category: "vintage-clothing", segment: "Vintage band & moto tees", keywords: ["harley", "3d emblem"], price: 95, source: 5, drift: 0.1, spike: 0.04, soldDay: 3, demand7: 0.15, active: 190, days: 8, ship: 5, venues: ["Goodwill", "Thrift store"] },

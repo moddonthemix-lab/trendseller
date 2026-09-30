@@ -61,6 +61,17 @@ export interface Product {
   bestSources: SourceVenue[];
   /** Up to 90 days of daily history, oldest first. */
   history: DailyMetric[];
+  /** Links to free live-data sources for this exact item. */
+  refs?: ProductRefs;
+}
+
+export interface ProductRefs {
+  /** Discogs release id (records, CDs, cassettes). */
+  discogsReleaseId?: number;
+  /** TCGdex card id, e.g. "base1-4" (Pokémon). */
+  tcgdexCardId?: string;
+  /** Scryfall card id (Magic: The Gathering). */
+  scryfallId?: string;
 }
 
 export type SourceVenue =

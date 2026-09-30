@@ -1,5 +1,7 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { notFound } from "next/navigation";
+import { LiveMarketPanel } from "@/components/LiveMarketPanel";
 import { PriceChart } from "@/components/PriceChart";
 import { ProfitCalculator } from "@/components/ProfitCalculator";
 import { Card, Meter, PageHeader, ScoreBadge, Stat, TrendPill, pct, usd } from "@/components/ui";
@@ -7,6 +9,7 @@ import { categoryLabel } from "@/lib/domain/types";
 import { getMarketData } from "@/lib/data/repository";
 import { maxBuyForRoi } from "@/lib/scoring/brief";
 import { detectGem } from "@/lib/scoring/hiddenGems";
+import { hasLiveSources } from "@/lib/sources/live";
 import { OPPORTUNITY_WEIGHTS, analyzeProduct, type FactorKey } from "@/lib/scoring/opportunity";
 
 export const dynamic = "force-dynamic";
@@ -74,6 +77,11 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
           </Card>
         </div>
         <div className="space-y-5 lg:col-span-2">
+          {hasLiveSources(product) && (
+            <Suspense fallback={<Card title="Live market data"><p className="text-sm text-muted">Loading live prices…</p></Card>}>
+              <LiveMarketPanel product={product} />
+            </Suspense>
+          )}
           <Card title="Sourcing">
             <dl className="space-y-2 text-sm">
               <div className="flex justify-between gap-3">

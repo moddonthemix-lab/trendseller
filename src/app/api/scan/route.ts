@@ -2,7 +2,8 @@ import { getMarketData } from "@/lib/data/repository";
 import type { Product } from "@/lib/domain/types";
 import { matchListing } from "@/lib/scoring/arbitrage";
 import { buyVerdict } from "@/lib/scoring/buyScore";
-import { marketplaceFees } from "@/lib/scoring/profit";
+import { calculateProfit, marketplaceFees } from "@/lib/scoring/profit";
+import { identifyBarcode } from "@/lib/sources/barcode";
 
 export const dynamic = "force-dynamic";
 
@@ -36,7 +37,20 @@ export async function GET(req: Request) {
     matches = [...new Set([...(exact ? [exact] : []), ...fuzzy])].slice(0, 5);
   }
 
+  // Not in the tracked catalog: identify the barcode with the free public sources instead.
+  let external = null;
+  if (!matches.length && code && code.length >= 8) {
+    const id = await identifyBarcode(code);
+    // Records/tapes/CDs have a real resale signal (Discogs). Estimate conservatively from the
+    // cheapest listed pressing, since we can't tell pressings apart from the barcode alone.
+    // Media Mail shipping ≈ $5.
+    const prices = id.media.flatMap((m) => (m.lowestPrice !== undefined ? [m.lowestPrice] : []));
+    const mediaEstimate = prices.length ? calculateProfit({ salePrice: Math.min(...prices), purchasePrice: price, shippingCost: 5 }) : null;
+    external = { ...id, mediaEstimate };
+  }
+
   return Response.json({
+    external,
     matches: matches.map((p) => {
       const v = buyVerdict(p, price || p.typicalSourcePrice);
       return {

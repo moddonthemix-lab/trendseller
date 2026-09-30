@@ -84,5 +84,6 @@ export function productFromSpec(spec: CatalogSpec, index: number, today: Date): 
     typicalSourcePrice: spec.source,
     bestSources: spec.venues,
     history,
+    ...(spec.refs && { refs: spec.refs }),
   };
 }

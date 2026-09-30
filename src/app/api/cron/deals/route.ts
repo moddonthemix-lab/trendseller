@@ -8,7 +8,7 @@ export const runtime = "nodejs";
 export const maxDuration = 120;
 
 /**
- * AI Deal Detector job. The Railway cron service (scripts/trigger-deals.mjs) calls this
+ * AI Deal Detector job. The Railway cron service (scripts/daily-cron.mjs) calls this
  * with `Authorization: Bearer $CRON_SECRET`.
  * New deals are stored in `alerts` (for ALERT_USER_ID) and pushed to DEAL_WEBHOOK_URL.
  */

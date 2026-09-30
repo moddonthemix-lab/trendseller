@@ -52,7 +52,7 @@ With no environment variables the app runs fully on a built-in **sample market**
 
 ## Going live (Railway)
 
-1. **Supabase**: create a project and run `supabase/migrations/0001_init.sql` (SQL editor or `supabase db push`).
+1. **Supabase**: create a project and run the migrations in `supabase/migrations/` in order (SQL editor or `supabase db push`).
    Under *Authentication → URL Configuration*, set the Site URL to your Railway URL and add `https://<your-app>.up.railway.app/auth/callback` as a redirect URL.
 2. **Web service**: in Railway, *New Project → Deploy from GitHub repo* and pick this repo. `railway.json` sets the build (`npm run build`), start command (`npm start`) and health check (`/api/health`). Under *Settings → Networking*, generate a domain.
 3. **Variables** (on the web service; see `.env.example`):
@@ -62,7 +62,7 @@ With no environment variables the app runs fully on a built-in **sample market**
    - `INGEST_SECRET`, `CRON_SECRET` (any long random strings), `ALERT_USER_ID` (your Supabase user id), `DEAL_WEBHOOK_URL` (an `https://ntfy.sh/<topic>` URL, Discord or Slack webhook) for phone notifications
 
    `NEXT_PUBLIC_*` values are baked in at build time, so redeploy after changing them. Once Supabase is configured every page requires sign-in (magic link). After your first sign-in, turn off new sign-ups in Supabase Auth settings.
-4. **Deal-detector cron**: add a second service from the same repo. In its *Settings*, set the *Config-as-code* path to `/railway.cron.json` and give it the variables `APP_URL` and `CRON_SECRET` (same values as the web service; you can use Railway variable references). It runs `scripts/trigger-deals.mjs` daily at 11:00 UTC, which calls `/api/cron/deals` and exits. Edit `cronSchedule` in `railway.cron.json` to run it more often.
+4. **Daily cron**: add a second service from the same repo. In its *Settings*, set the *Config-as-code* path to `/railway.cron.json` and give it the variables `APP_URL` and `CRON_SECRET` (same values as the web service; you can use Railway variable references). It runs `scripts/daily-cron.mjs` daily at 11:00 UTC, which calls `/api/cron/collect` (free data sources) then `/api/cron/deals` (deal alerts) and exits. Edit `cronSchedule` in `railway.cron.json` to change the time.
 5. **Data**: seed the database, then feed it real data:
 
 ```bash
@@ -75,7 +75,23 @@ curl -X POST https://<your-app>.up.railway.app/api/ingest -H "Authorization: Bea
 
 ### Data sources
 
-The app ships with **no live marketplace scrapers**. Sold-listing data isn't available from public APIs (eBay's Marketplace Insights API needs approval) and scraping Facebook Marketplace/OfferUp breaks their terms. Any collector you run (eBay Browse/Insights API, Terapeak exports, a Google Sheet, your own tooling) can push into `/api/ingest` on a schedule.
+**Built in, no account or key needed:**
+
+| Source | Used for | Limits |
+| --- | --- | --- |
+| [Discogs](https://www.discogs.com/developers) | Records, CDs, cassettes: lowest listed price, number for sale, collectors' want/have. Scanner barcode lookup (shows every pressing that shares a barcode) and daily snapshots for linked products | 25 requests/min (set `DISCOGS_TOKEN` for 60/min) |
+| [TCGdex](https://tcgdex.dev) | Pokémon cards: TCGplayer market/low/high, Cardmarket 1/7/30-day averages | none published |
+| [Scryfall](https://scryfall.com/docs/api) | Magic: The Gathering card prices (TCGplayer, Cardmarket) | ~10 requests/sec |
+| [UPCitemdb](https://www.upcitemdb.com/wp/docs/main/development/getting-started/) | Scanner: name/brand/model/category for any barcode, plus retail price range | 100 lookups/day, 6/min per IP |
+| [Open Library](https://openlibrary.org/developers/api) | Scanner: book title/author from an ISBN (no prices) | fair use |
+
+Link a product to these with `refs` (`discogsReleaseId`, `tcgdexCardId`, `scryfallId`) when sending it to `/api/ingest`. The product page then shows a *Live market data* panel, and the daily collector stores one row per product, source and day in `external_snapshots`, so history builds up. Discogs prices are asking prices, not sold prices, and the app labels them that way.
+
+**Need a free sign-up (not wired in yet):** eBay Browse API (active listings, competition, supply for every category), eBay Marketplace Insights (real sold prices; requires approval), BrickEconomy (LEGO values and forecasts, 100 calls/day).
+
+**Paid:** PriceCharting (video game sold values and sales volume), Keepa (Amazon price history).
+
+eBay has shown sold/completed listings only to signed-in users since July 2026, so scraping sold prices without an account no longer works.
 
 ## Project layout
 
@@ -87,9 +103,10 @@ src/
   lib/scoring/         opportunity, trend, profit, hidden gems, heat map, arbitrage, deals, buy verdict, brief, modes
   lib/data/            sample catalog/generator, Supabase mappers & repository
   lib/ai/              Claude client, market context for prompts, rule-based fallback
+  lib/sources/         free data sources (Discogs, TCGdex, Scryfall, UPCitemdb, Open Library)
   lib/supabase/        browser/server/admin clients
   proxy.ts             auth gate (active only when Supabase is configured)
-scripts/trigger-deals.mjs  Railway cron entry point for the deal detector
+scripts/daily-cron.mjs     Railway cron entry point (data collection + deal detector)
 railway.json         web service config  ·  railway.cron.json  cron service config
 supabase/migrations/   Postgres schema with RLS
 ```

@@ -33,6 +33,89 @@ interface Identification {
   conditionNotes: string;
 }
 
+interface ExternalLookup {
+  code: string;
+  product: { title: string; brand?: string; model?: string; category?: string; image?: string; lowestRecordedPrice?: number; highestRecordedPrice?: number; offerCount: number } | null;
+  media: { releaseId: number; title: string; year?: number; format?: string; numForSale: number; lowestPrice?: number; have: number; want: number; demandRatio: number; url: string }[];
+  book: { title: string; authors: string[]; publishDate?: string; publisher?: string; cover?: string; url: string } | null;
+  errors: string[];
+  mediaEstimate: { netProfit: number; roi: number; fees: number } | null;
+}
+
+function ExternalResult({ ext, hasPrice }: { ext: ExternalLookup; hasPrice: boolean }) {
+  const nothing = !ext.product && !ext.media.length && !ext.book;
+  return (
+    <div className="space-y-3 rounded-2xl border border-line bg-panel p-4">
+      <div className="text-xs uppercase tracking-wide text-muted">Not in your tracked catalog · barcode {ext.code}</div>
+      {ext.media.length > 0 && (
+        <div>
+          <div className="text-lg font-bold">{ext.media[0].title}</div>
+          <p className="text-sm text-muted">
+            {ext.media.length > 1 ? `${ext.media.length} pressings share this barcode — ` : ""}check the matrix/runout etching near the label to confirm which one you have.
+          </p>
+          <ul className="mt-3 space-y-2">
+            {ext.media.map((m) => (
+              <li key={m.releaseId} className="rounded-xl bg-panel-2 p-3 text-sm">
+                <a href={m.url} target="_blank" rel="noreferrer" className="font-medium hover:underline">
+                  {[m.year, m.format].filter(Boolean).join(" · ") || m.title}
+                </a>
+                <div className="tabular mt-1 flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-muted">
+                  <span className="text-ink">Lowest listed {m.lowestPrice !== undefined ? usd(m.lowestPrice, 2) : "–"}</span>
+                  <span>{m.numForSale} for sale</span>
+                  <span>
+                    {m.want.toLocaleString()} want / {m.have.toLocaleString()} have
+                  </span>
+                  <span className={m.demandRatio >= 1 ? "text-accent" : ""}>demand {m.demandRatio.toFixed(2)}</span>
+                </div>
+              </li>
+            ))}
+          </ul>
+          {ext.mediaEstimate && (
+            <div className="mt-3 grid grid-cols-2 gap-2">
+              <Stat
+                label={hasPrice ? "Profit (cheapest pressing)" : "Profit (no shelf price)"}
+                value={usd(ext.mediaEstimate.netProfit)}
+                tone={ext.mediaEstimate.netProfit > 10 ? "good" : "bad"}
+                hint="eBay fees + $5 media mail"
+              />
+            </div>
+          )}
+          <p className="mt-2 text-xs text-muted">Discogs shows asking prices, not sold prices. The estimate uses the cheapest listed pressing to stay conservative.</p>
+        </div>
+      )}
+      {ext.book && (
+        <div className="flex gap-3">
+          {ext.book.cover && <img src={ext.book.cover} alt="" className="h-24 rounded" />}
+          <div>
+            <a href={ext.book.url} target="_blank" rel="noreferrer" className="text-lg font-bold hover:underline">
+              {ext.book.title}
+            </a>
+            <div className="text-sm text-muted">{[ext.book.authors.join(", "), ext.book.publisher, ext.book.publishDate].filter(Boolean).join(" · ")}</div>
+            <p className="mt-1 text-xs text-muted">Identified via Open Library (no price data). Check sold comps before buying.</p>
+          </div>
+        </div>
+      )}
+      {ext.product && !ext.media.length && (
+        <div className="flex gap-3">
+          {ext.product.image && <img src={ext.product.image} alt="" className="h-24 w-24 rounded object-contain bg-white" />}
+          <div>
+            <div className="text-lg font-bold">{ext.product.title}</div>
+            <div className="text-sm text-muted">{[ext.product.brand, ext.product.model, ext.product.category].filter(Boolean).join(" · ")}</div>
+            {(ext.product.lowestRecordedPrice || ext.product.highestRecordedPrice) && (
+              <div className="mt-1 text-sm">
+                Retail new: {usd(ext.product.lowestRecordedPrice ?? 0, 2)} – {usd(ext.product.highestRecordedPrice ?? 0, 2)}
+                <span className="text-xs text-muted"> (store prices, a ceiling for used resale)</span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+      {nothing && <p className="text-sm text-muted">No free source recognized this barcode. Try a text search or a photo.</p>}
+      {ext.errors.length > 0 && <p className="text-xs text-amber-300">Some sources didn&apos;t answer: {ext.errors.join("; ")}</p>}
+    </div>
+  );
+}
+
 // Minimal typing for the Shape Detection API (Chrome/Android, Safari 17+ behind flag).
 interface DetectedBarcode {
   rawValue: string;
@@ -57,6 +140,7 @@ export function Scanner() {
   const [query, setQuery] = useState("");
   const [price, setPrice] = useState("");
   const [matches, setMatches] = useState<ScanMatch[] | null>(null);
+  const [external, setExternal] = useState<ExternalLookup | null>(null);
   const [ident, setIdent] = useState<Identification | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -71,8 +155,9 @@ export function Scanner() {
       try {
         const qs = new URLSearchParams({ ...params, ...(price ? { price } : {}) });
         const res = await fetch(`/api/scan?${qs}`);
-        const json = (await res.json()) as { matches: ScanMatch[] };
+        const json = (await res.json()) as { matches: ScanMatch[]; external: ExternalLookup | null };
         setMatches(json.matches);
+        setExternal(json.external);
       } catch {
         setError("Lookup failed");
       } finally {
@@ -200,7 +285,9 @@ export function Scanner() {
         </div>
       )}
 
-      {matches?.length === 0 && !ident && <p className="text-sm text-muted">No tracked product matched. Try a different search.</p>}
+      {external && <ExternalResult ext={external} hasPrice={Boolean(price)} />}
+
+      {matches?.length === 0 && !ident && !external && <p className="text-sm text-muted">No tracked product matched. Try a different search.</p>}
 
       {matches?.map((m, i) => (
         <div key={m.id} className={`rounded-2xl border border-line bg-panel p-4 ${i > 0 ? "opacity-80" : ""}`}>

@@ -4,7 +4,7 @@
     "buildCommand": "node --version"
   },
   "deploy": {
-    "startCommand": "node scripts/trigger-deals.mjs",
+    "startCommand": "node scripts/daily-cron.mjs",
     "cronSchedule": "0 11 * * *",
     "restartPolicyType": "NEVER"
   }
