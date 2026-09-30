@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "description": "Personal reselling intelligence platform: opportunity scoring, hidden gems, scanner, arbitrage, AI sourcing assistant.",
+  "engines": {
+    "node": ">=20.9"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",

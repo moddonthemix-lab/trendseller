@@ -1,17 +1,19 @@
 import { NextResponse } from "next/server";
+import { publicOrigin } from "@/lib/origin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 /** Magic-link landing: exchange the code for a session, enforce the single-owner allowlist. */
 export async function GET(request: Request) {
   const url = new URL(request.url);
+  const origin = publicOrigin(request);
   const code = url.searchParams.get("code");
   const nextParam = url.searchParams.get("next") ?? "/";
   const next = nextParam.startsWith("/") && !nextParam.startsWith("//") ? nextParam : "/";
   const db = await createSupabaseServerClient();
-  if (!db || !code) return NextResponse.redirect(new URL("/login?error=1", url.origin));
+  if (!db || !code) return NextResponse.redirect(new URL("/login?error=1", origin));
 
   const { data, error } = await db.auth.exchangeCodeForSession(code);
-  if (error) return NextResponse.redirect(new URL("/login?error=1", url.origin));
+  if (error) return NextResponse.redirect(new URL("/login?error=1", origin));
 
   const allowed = (process.env.ALLOWED_EMAILS ?? "")
     .split(",")
@@ -19,7 +21,7 @@ export async function GET(request: Request) {
     .filter(Boolean);
   if (allowed.length && !allowed.includes(data.user.email?.toLowerCase() ?? "")) {
     await db.auth.signOut();
-    return NextResponse.redirect(new URL("/login?error=forbidden", url.origin));
+    return NextResponse.redirect(new URL("/login?error=forbidden", origin));
   }
-  return NextResponse.redirect(new URL(next, url.origin));
+  return NextResponse.redirect(new URL(next, origin));
 }

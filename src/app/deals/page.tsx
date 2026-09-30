@@ -19,7 +19,7 @@ export default async function DealsPage() {
       />
       <Card title="How notifications work" className="mb-5">
         <p className="text-sm text-muted">
-          A Vercel cron calls <code className="text-ink">/api/cron/deals</code> every morning (edit <code className="text-ink">vercel.json</code> for more frequent runs). New deals are saved
+          A Railway cron service calls <code className="text-ink">/api/cron/deals</code> every morning (change the schedule in <code className="text-ink">railway.cron.json</code>). New deals are saved
           to your alerts table and POSTed to <code className="text-ink">DEAL_WEBHOOK_URL</code> — use an ntfy.sh topic, Discord or Slack webhook to get push notifications on your phone.
         </p>
       </Card>

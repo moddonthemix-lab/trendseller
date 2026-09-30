@@ -8,7 +8,8 @@ export const runtime = "nodejs";
 export const maxDuration = 120;
 
 /**
- * AI Deal Detector job. Vercel Cron calls this with `Authorization: Bearer $CRON_SECRET`.
+ * AI Deal Detector job. The Railway cron service (scripts/trigger-deals.mjs) calls this
+ * with `Authorization: Bearer $CRON_SECRET`.
  * New deals are stored in `alerts` (for ALERT_USER_ID) and pushed to DEAL_WEBHOOK_URL.
  */
 export async function GET(req: Request) {

@@ -1,7 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-const PUBLIC_PREFIXES = ["/login", "/auth", "/api/cron", "/api/ingest", "/manifest.webmanifest"];
+const PUBLIC_PREFIXES = ["/login", "/auth", "/api/cron", "/api/ingest", "/api/health", "/manifest.webmanifest"];
 
 /**
  * When Supabase is configured the whole app is private: refresh the auth session and

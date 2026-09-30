@@ -3,7 +3,7 @@
 A private sourcing and reselling intelligence platform for one reseller. Every morning it answers:
 **what to buy, where to buy it, the expected profit, how fast it sells, and why it's an opportunity right now.**
 
-Built with Next.js (App Router) · React · TypeScript · TailwindCSS · Supabase (Postgres + Auth) · Vercel · Claude.
+Built with Next.js (App Router) · React · TypeScript · TailwindCSS · Supabase (Postgres + Auth) · Railway · Claude.
 
 ## What's in it
 
@@ -50,19 +50,24 @@ npm run build
 
 With no environment variables the app runs fully on a built-in **sample market** (≈60 realistic products with 90 days of generated history plus sample local listings), stores inventory in your browser, and uses the rule-based assistant. A banner tells you when you're looking at sample data.
 
-## Going live
+## Going live (Railway)
 
-1. **Supabase**: create a project, run `supabase/migrations/0001_init.sql` (SQL editor or `supabase db push`), then set
-   `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`.
-   Set `ALLOWED_EMAILS` to your email. Once configured, every page requires sign-in (magic link). After your first sign-in, disable new sign-ups in Supabase Auth settings.
-2. **Claude**: set `ANTHROPIC_API_KEY` to enable the AI assistant and photo identification.
-3. **Location**: set `HOME_LAT` / `HOME_LNG` for distance calculations.
-4. **Deals**: set `CRON_SECRET` (Vercel sends it to the cron automatically), `ALERT_USER_ID` (your Supabase user id) and `DEAL_WEBHOOK_URL` (an `https://ntfy.sh/<topic>` URL, Discord or Slack webhook) for phone notifications. The schedule is in `vercel.json` (daily; Pro plans can run it more often).
+1. **Supabase**: create a project and run `supabase/migrations/0001_init.sql` (SQL editor or `supabase db push`).
+   Under *Authentication → URL Configuration*, set the Site URL to your Railway URL and add `https://<your-app>.up.railway.app/auth/callback` as a redirect URL.
+2. **Web service**: in Railway, *New Project → Deploy from GitHub repo* and pick this repo. `railway.json` sets the build (`npm run build`), start command (`npm start`) and health check (`/api/health`). Under *Settings → Networking*, generate a domain.
+3. **Variables** (on the web service; see `.env.example`):
+   - `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`
+   - `APP_URL` = your Railway URL, `ALLOWED_EMAILS` = your email
+   - `ANTHROPIC_API_KEY` (AI assistant + photo ID), `HOME_LAT` / `HOME_LNG` (distances)
+   - `INGEST_SECRET`, `CRON_SECRET` (any long random strings), `ALERT_USER_ID` (your Supabase user id), `DEAL_WEBHOOK_URL` (an `https://ntfy.sh/<topic>` URL, Discord or Slack webhook) for phone notifications
+
+   `NEXT_PUBLIC_*` values are baked in at build time, so redeploy after changing them. Once Supabase is configured every page requires sign-in (magic link). After your first sign-in, turn off new sign-ups in Supabase Auth settings.
+4. **Deal-detector cron**: add a second service from the same repo. In its *Settings*, set the *Config-as-code* path to `/railway.cron.json` and give it the variables `APP_URL` and `CRON_SECRET` (same values as the web service; you can use Railway variable references). It runs `scripts/trigger-deals.mjs` daily at 11:00 UTC, which calls `/api/cron/deals` and exits. Edit `cronSchedule` in `railway.cron.json` to run it more often.
 5. **Data**: seed the database, then feed it real data:
 
 ```bash
 # Load the sample catalog into Supabase (first-time setup)
-curl -X POST https://<your-app>/api/ingest -H "Authorization: Bearer $INGEST_SECRET" \
+curl -X POST https://<your-app>.up.railway.app/api/ingest -H "Authorization: Bearer $INGEST_SECRET" \
   -H "Content-Type: application/json" -d '{"seedSample": true}'
 ```
 
@@ -84,6 +89,8 @@ src/
   lib/ai/              Claude client, market context for prompts, rule-based fallback
   lib/supabase/        browser/server/admin clients
   proxy.ts             auth gate (active only when Supabase is configured)
+scripts/trigger-deals.mjs  Railway cron entry point for the deal detector
+railway.json         web service config  ·  railway.cron.json  cron service config
 supabase/migrations/   Postgres schema with RLS
 ```
 

@@ -1,0 +1,11 @@
+{
+  "$schema": "https://railway.com/railway.schema.json",
+  "build": {
+    "buildCommand": "node --version"
+  },
+  "deploy": {
+    "startCommand": "node scripts/trigger-deals.mjs",
+    "cronSchedule": "0 11 * * *",
+    "restartPolicyType": "NEVER"
+  }
+}
